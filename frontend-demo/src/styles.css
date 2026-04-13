@@ -1,0 +1,234 @@
+:root {
+  --ink-900: #0f1720;
+  --ink-700: #2b3e4d;
+  --ink-500: #5b6f80;
+  --paper: #f4efe5;
+  --panel: #fffaf0;
+  --line: #dacdb8;
+  --teal: #0a7f7a;
+  --amber: #c17a26;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--ink-900);
+  background:
+    radial-gradient(1000px 600px at 90% -10%, #f7d9b4 0%, transparent 65%),
+    radial-gradient(900px 540px at 10% 5%, #c8ece4 0%, transparent 70%),
+    var(--paper);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: "Newsreader", serif;
+}
+
+p {
+  margin: 0;
+}
+
+.layout {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.hero,
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.92), rgba(255, 252, 246, 0.78));
+  box-shadow: 0 18px 36px rgba(24, 36, 46, 0.09);
+}
+
+.hero,
+.panel {
+  padding: 1.1rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-500);
+  font-size: 0.8rem;
+}
+
+h1 {
+  margin-top: 0.2rem;
+  font-size: clamp(1.8rem, 3.2vw, 2.8rem);
+}
+
+.lead {
+  margin-top: 0.6rem;
+  color: var(--ink-700);
+  max-width: 62ch;
+}
+
+.controls {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: 110px 110px 1fr auto;
+  gap: 0.55rem;
+  align-items: end;
+}
+
+label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--ink-700);
+  font-size: 0.82rem;
+}
+
+input,
+select,
+button {
+  font: inherit;
+}
+
+input,
+select {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.56rem 0.95rem;
+  background: var(--ink-900);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.search-wrap {
+  min-width: 190px;
+}
+
+.endpoint {
+  margin-top: 0.7rem;
+  color: var(--ink-500);
+  font-size: 0.88rem;
+}
+
+.panel h2 {
+  font-size: 1.4rem;
+  margin-bottom: 0.7rem;
+}
+
+.status {
+  margin-bottom: 0.75rem;
+  color: var(--ink-700);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.stat-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 0.65rem;
+}
+
+.stat-card p {
+  color: var(--ink-500);
+  font-size: 0.82rem;
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.15rem;
+}
+
+.topics {
+  margin-top: 0.65rem;
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.topic {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  color: var(--ink-700);
+  font-size: 0.78rem;
+}
+
+.bill-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.bill-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 0.8rem;
+}
+
+.bill-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.bill-head strong {
+  color: var(--teal);
+  font-size: 0.9rem;
+}
+
+.bill-head span {
+  color: var(--amber);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.bill-card h3 {
+  margin-top: 0.45rem;
+  font-size: 1.15rem;
+}
+
+.meta {
+  margin-top: 0.45rem;
+  color: var(--ink-500);
+  font-size: 0.88rem;
+}
+
+.bill-link {
+  display: inline-block;
+  margin-top: 0.65rem;
+  text-decoration: none;
+  color: var(--teal);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stats-grid,
+  .bill-grid {
+    grid-template-columns: 1fr;
+  }
+}
