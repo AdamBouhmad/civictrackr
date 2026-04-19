@@ -1,16 +1,2 @@
-__pycache__/
-*.py[cod]
-.ruff_cache/
-
-# local virtualenv artifacts
-bin/
-include/
-lib/
-pyvenv.cfg
-
-# local data
-congress.db
-
-# frontend build artifacts
-frontend-demo/node_modules/
-frontend-demo/dist/
+# Created by venv; see https://docs.python.org/3/library/venv.html
+*
