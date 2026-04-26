@@ -57,11 +57,12 @@ def insert_bill_summary(bill: str, summary: str) -> None:
     cursor = connection.cursor()
     cursor.execute(
     """
-                    INSERT OR IGNORE INTO bill_details(
+                    INSERT INTO bill_details(
                         bill_id,
                         summary
                     )
-                    VALUES(?, ?)
+                    VALUES(?, ?) ON CONFLICT(bill_id) DO UPDATE SET 
+        summary = excluded.summary
                     """,
         (bill, summary)
     )
@@ -121,3 +122,22 @@ def get_bill_details(bill_id: str):
     rows = cursor.fetchone()
     connection.close()
     return rows 
+
+def search_bills(user_text: str, limit: int, offset: int):
+    search_term = f"%{user_text.strip()}%"
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+    cursor.execute(
+    """
+                SELECT title
+                FROM bills
+                WHERE title LIKE ?
+                LIMIT ?
+                OFFSET ?
+    """,
+    (search_term, limit, offset,),
+    )
+    rows = cursor.fetchall()
+    connection.close()
+    return rows
+    

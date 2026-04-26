@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from storage import get_bill as get_bill_by_id
-from storage import list_bills, get_bill_details
+from storage import list_bills, get_bill_details, search_bills
 
 app = FastAPI()
 
@@ -38,3 +38,8 @@ def get_bill_detail(bill_id: str):
     if bill_details is None:
         raise HTTPException(status_code=404, detail="Information about this Bill could not be found.")
     return bill_details
+
+@app.get("/search/bills")
+def search_bill(q: str, limit: int = 10, offset: int = 0):
+    paginated_bills = search_bills(q, limit, offset)
+    return paginated_bills
