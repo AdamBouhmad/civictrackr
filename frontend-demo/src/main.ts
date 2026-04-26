@@ -8,25 +8,37 @@ type Bill = {
   bill_url: string;
 };
 
+type SearchResult = {
+  title: string;
+};
+
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
+const SEARCH_PAGE_SIZE = 10;
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("App root not found");
 
 app.innerHTML = `
-  <div class="layout">
-    <header class="hero">
+  <div class="layout fade-in">
+    <header class="hero stagger-1">
       <p class="eyebrow">CivicTracker</p>
-      <h1>What Congress is actually doing</h1>
-      <p class="lead">Live bill feed from your backend with quick civic signals for demos.</p>
+      <h1>Know your representatives through policy, not headlines.</h1>
+      <p class="lead">A clean civic workspace to scan active bills, search fast, and stay grounded in official records.</p>
+      <p class="endpoint">API base: ${API_BASE}</p>
+    </header>
 
+    <section class="panel controls-panel stagger-2">
+      <div>
+        <h2>Live Bills</h2>
+        <p class="panel-copy">Load the latest bills from your current backend feed.</p>
+      </div>
       <form id="controls" class="controls">
         <label>
           Session
           <input id="session-input" type="text" value="119" maxlength="3" />
         </label>
         <label>
-          Limit
+          Page Size
           <select id="limit-input">
             <option value="10">10</option>
             <option value="20" selected>20</option>
@@ -34,24 +46,35 @@ app.innerHTML = `
             <option value="50">50</option>
           </select>
         </label>
-        <label class="search-wrap">
-          Search title
-          <input id="search-input" type="text" placeholder="health, veterans, budget..." />
-        </label>
-        <button type="submit">Refresh</button>
+        <button type="submit">Load Bills</button>
       </form>
-      <p class="endpoint">Endpoint: ${API_BASE}/bills</p>
-    </header>
-
-    <section class="panel">
-      <h2>Snapshot</h2>
       <p id="status" class="status">Loading bills...</p>
       <div id="stats" class="stats-grid"></div>
       <div id="topics" class="topics"></div>
     </section>
 
-    <section class="panel">
-      <h2>Bills</h2>
+    <section class="panel search-panel stagger-3">
+      <div class="search-head">
+        <div>
+          <h2>Bill Search</h2>
+          <p class="panel-copy">Searches your current backend endpoint, 10 results per page.</p>
+        </div>
+        <form id="search-form" class="search-controls">
+          <input id="search-input" type="text" placeholder="Try: veterans, border, housing" />
+          <button type="submit">Search</button>
+        </form>
+      </div>
+      <p id="search-status" class="status">Type a term to search bill titles.</p>
+      <div id="search-list" class="search-list"></div>
+      <div class="pager">
+        <button id="prev-page" type="button">Previous</button>
+        <p id="pager-label">Page 1</p>
+        <button id="next-page" type="button">Next</button>
+      </div>
+    </section>
+
+    <section class="panel stagger-4">
+      <h2>Bill Feed</h2>
       <div id="bill-list" class="bill-grid"></div>
     </section>
   </div>
@@ -60,15 +83,39 @@ app.innerHTML = `
 const controlsForm = document.querySelector<HTMLFormElement>("#controls");
 const sessionInput = document.querySelector<HTMLInputElement>("#session-input");
 const limitInput = document.querySelector<HTMLSelectElement>("#limit-input");
+const searchForm = document.querySelector<HTMLFormElement>("#search-form");
 const searchInput = document.querySelector<HTMLInputElement>("#search-input");
+const searchStatusNode = document.querySelector<HTMLParagraphElement>("#search-status");
+const searchListNode = document.querySelector<HTMLDivElement>("#search-list");
+const prevPageButton = document.querySelector<HTMLButtonElement>("#prev-page");
+const nextPageButton = document.querySelector<HTMLButtonElement>("#next-page");
+const pagerLabel = document.querySelector<HTMLParagraphElement>("#pager-label");
 const statusNode = document.querySelector<HTMLParagraphElement>("#status");
 const statsNode = document.querySelector<HTMLDivElement>("#stats");
 const topicsNode = document.querySelector<HTMLDivElement>("#topics");
 const billListNode = document.querySelector<HTMLDivElement>("#bill-list");
 
-if (!controlsForm || !sessionInput || !limitInput || !searchInput || !statusNode || !statsNode || !topicsNode || !billListNode) {
+if (
+  !controlsForm ||
+  !sessionInput ||
+  !limitInput ||
+  !searchForm ||
+  !searchInput ||
+  !searchStatusNode ||
+  !searchListNode ||
+  !prevPageButton ||
+  !nextPageButton ||
+  !pagerLabel ||
+  !statusNode ||
+  !statsNode ||
+  !topicsNode ||
+  !billListNode
+) {
   throw new Error("UI nodes missing");
 }
+
+let searchOffset = 0;
+let hasNextSearchPage = false;
 
 const normalizeRow = (row: unknown): Bill | null => {
   if (Array.isArray(row) && row.length >= 5) {
@@ -98,10 +145,30 @@ const normalizeRow = (row: unknown): Bill | null => {
   return null;
 };
 
+const normalizeSearchRow = (row: unknown): SearchResult | null => {
+  if (Array.isArray(row) && row.length >= 1) {
+    const [title] = row;
+    return {
+      title: String(title)
+    };
+  }
+
+  if (row && typeof row === "object") {
+    const obj = row as Record<string, unknown>;
+    if (obj.title) {
+      return {
+        title: String(obj.title)
+      };
+    }
+  }
+
+  return null;
+};
+
 const billChamber = (id: string): "House" | "Senate" | "Unknown" => {
   const normalized = id.toLowerCase();
-  if (normalized.includes("hr") || normalized.includes("hjres") || normalized.includes("hconres")) return "House";
-  if (normalized.includes("s") || normalized.includes("sjres") || normalized.includes("sconres")) return "Senate";
+  if (normalized.startsWith("hr") || normalized.startsWith("hjres") || normalized.startsWith("hconres")) return "House";
+  if (normalized.startsWith("s") || normalized.startsWith("sjres") || normalized.startsWith("sconres")) return "Senate";
   return "Unknown";
 };
 
@@ -158,6 +225,72 @@ const renderBills = (bills: Bill[]): void => {
     .join("");
 };
 
+const renderSearch = (items: SearchResult[]): void => {
+  if (items.length === 0) {
+    searchListNode.innerHTML = '<p class="search-empty">No title matches found for this query.</p>';
+    return;
+  }
+
+  searchListNode.innerHTML = items
+    .map(
+      (item, index) => `
+      <article class="search-item">
+        <span>${searchOffset + index + 1}.</span>
+        <p>${item.title}</p>
+      </article>
+    `
+    )
+    .join("");
+};
+
+const updatePager = (): void => {
+  prevPageButton.disabled = searchOffset === 0;
+  nextPageButton.disabled = !hasNextSearchPage;
+  const page = Math.floor(searchOffset / SEARCH_PAGE_SIZE) + 1;
+  pagerLabel.textContent = `Page ${page}`;
+};
+
+const loadSearch = async (): Promise<void> => {
+  const query = searchInput.value.trim();
+  if (!query) {
+    searchStatusNode.textContent = "Type a term to search bill titles.";
+    searchListNode.innerHTML = "";
+    hasNextSearchPage = false;
+    updatePager();
+    return;
+  }
+
+  try {
+    searchStatusNode.textContent = "Searching titles...";
+    const params = new URLSearchParams({
+      q: query,
+      limit: String(SEARCH_PAGE_SIZE),
+      offset: String(searchOffset)
+    });
+
+    const response = await fetch(`${API_BASE}/search/bills?${params.toString()}`);
+    if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+
+    const raw = (await response.json()) as unknown;
+    if (!Array.isArray(raw)) throw new Error("Unexpected response shape");
+
+    const items = raw
+      .map((row) => normalizeSearchRow(row))
+      .filter((row): row is SearchResult => row !== null);
+
+    hasNextSearchPage = items.length === SEARCH_PAGE_SIZE;
+    searchStatusNode.textContent = `Showing ${items.length} result${items.length === 1 ? "" : "s"} for "${query}"`;
+    renderSearch(items);
+    updatePager();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    searchStatusNode.textContent = `Search failed: ${message}`;
+    searchListNode.innerHTML = "";
+    hasNextSearchPage = false;
+    updatePager();
+  }
+};
+
 const loadBills = async (): Promise<void> => {
   try {
     const params = new URLSearchParams({
@@ -202,11 +335,34 @@ controlsForm.addEventListener("submit", (event) => {
   void loadBills();
 });
 
-searchInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    void loadBills();
+searchForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  searchOffset = 0;
+  void loadSearch();
+});
+
+prevPageButton.addEventListener("click", () => {
+  if (searchOffset === 0) return;
+  searchOffset -= SEARCH_PAGE_SIZE;
+  void loadSearch();
+});
+
+nextPageButton.addEventListener("click", () => {
+  if (!hasNextSearchPage) return;
+  searchOffset += SEARCH_PAGE_SIZE;
+  void loadSearch();
+});
+
+searchInput.addEventListener("input", () => {
+  const q = searchInput.value.trim();
+  if (!q) {
+    searchOffset = 0;
+    hasNextSearchPage = false;
+    searchStatusNode.textContent = "Type a term to search bill titles.";
+    searchListNode.innerHTML = "";
+    updatePager();
   }
 });
 
+updatePager();
 void loadBills();
